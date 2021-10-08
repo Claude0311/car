@@ -1,12 +1,12 @@
-int ENB = 3;
-int ENA = 9;
-int IN1 = 8;
-int IN2 = 7;
-int IN3 = 6;
-int IN4 = 5;
+int ENB = 6;//5
+int ENA = 5;//6
+int IN1 = 4;//8
+int IN2 = 3;//7
+int IN3 = 8;//4
+int IN4 = 7;//3
 
 #define Rx 2
-#define Tx 4
+#define Tx 9
 #include <SoftwareSerial.h>
 SoftwareSerial BTSerial(Rx, Tx);
 char cmmd = 't';
@@ -36,15 +36,15 @@ void setup() {
 bool block = false;
 void loop() {
   // put your main code here, to run repeatedly:
-  if (BTSerial.available()){
-    cmmd = char(BTSerial.read());}
-  if(cmmd == 'f'){MotorWriting(80,80);}
-  else if(cmmd == 'b'){MotorWriting(-200,-200);}
-  else if(cmmd == 'r'){MotorWriting(100,200);}  
-  else if(cmmd == 'l'){MotorWriting(200,100);}
-  else if(cmmd == 't'){
+//  if (BTSerial.available()){
+//    cmmd = char(BTSerial.read());}
+//  if(cmmd == 'f'){MotorWriting(80,80);}
+//  else if(cmmd == 'b'){MotorWriting(-200,-200);}
+//  else if(cmmd == 'r'){MotorWriting(100,200);}  
+//  else if(cmmd == 'l'){MotorWriting(200,100);}
+//  else if(cmmd == 't'){
     Tracking();
-    corner();}
+//    corner();}
 }
 
 void MotorWriting(double vR, double vL){
