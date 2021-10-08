@@ -49,19 +49,19 @@ void loop() {
 
 void MotorWriting(double vR, double vL){
   if(vL>=0){
-     digitalWrite(IN1,LOW);  
-     digitalWrite(IN2,HIGH);
-  } else if(vL<0){
-     digitalWrite(IN1,HIGH);
+     digitalWrite(IN1,HIGH);  
      digitalWrite(IN2,LOW);
+  } else if(vL<0){
+     digitalWrite(IN1,LOW);
+     digitalWrite(IN2,HIGH);
     vL=-vL;
   }
   if(vR>=0){
-     digitalWrite(IN3,LOW);
-     digitalWrite(IN4,HIGH);
-  } else if(vR<0){
-     digitalWrite(IN3,HIGH);  
+     digitalWrite(IN3,HIGH);
      digitalWrite(IN4,LOW);
+  } else if(vR<0){
+     digitalWrite(IN3,LOW);  
+     digitalWrite(IN4,HIGH);
     vR=-vR;
   }
   analogWrite(ENA,vL);
@@ -83,8 +83,8 @@ void MotorCheck()
 int pre_time=millis();
 int cur_time=millis();
 double pre_error=0;
-int Kp=75; //比例增益係數
-int Ki=25; //微分增益係數
+int Kp=100; //比例增益係數
+int Kd=50; //微分增益係數
 
 void Tracking(){
   int l2 = digitalRead(L2);
@@ -93,11 +93,11 @@ void Tracking(){
   int r1 = digitalRead(R1);
   int r2 = digitalRead(R2);
   if((l1 + l2 + m + r1 + r2) != 0){
-  double error = (1*l1+0.5*l2-0.75*(l1==l2&&l1==1)-0.25*(m==l2&&m==1))-(1*r1+0.5*r2-0.75*(r1==r2&&r1==1)-0.25*(m==r2&&m==1));
+  double error = (1*l1+0.5*l2-0.75*(l1==l2&&l1==1)-0.25*(m==l2&&m==1))-(1*r1+0.5*r2-0.75*(r1==r2&&r1==1)-0.25*(m==r2&&m==1));//越左越大
   double LastError = (error - pre_error);
   pre_error = error;
-  double vR = (125+Kp*error+Ki*LastError)*0.5;
-  double vL = (125-Kp*error-Ki*LastError)*0.5;
+  double vR = min(255,125+Kp*error+Kd*LastError);
+  double vL = min(255,125-Kp*error-Kd*LastError);
   MotorWriting(int(vR),int(vL));
   }
   else MotorWriting(-150,-150);
