@@ -1,9 +1,9 @@
-int ENB = 6;//5
-int ENA = 5;//6
-int IN1 = 4;//8
-int IN2 = 3;//7
-int IN3 = 8;//4
-int IN4 = 7;//3
+int ENB = 6;
+int ENA = 5;
+int IN1 = 8;
+int IN2 = 7;
+int IN3 = 4;
+int IN4 = 3;
 
 #define Rx 2
 #define Tx 9
@@ -96,8 +96,8 @@ void Tracking(){
   double error = (1*l1+0.5*l2-0.75*(l1==l2&&l1==1)-0.25*(m==l2&&m==1))-(1*r1+0.5*r2-0.75*(r1==r2&&r1==1)-0.25*(m==r2&&m==1));
   double LastError = (error - pre_error);
   pre_error = error;
-  double vR = 125+Kp*error+Ki*LastError;
-  double vL = 125-Kp*error-Ki*LastError;
+  double vR = (125+Kp*error+Ki*LastError)*0.5;
+  double vL = (125-Kp*error-Ki*LastError)*0.5;
   MotorWriting(int(vR),int(vL));
   }
   else MotorWriting(-150,-150);
