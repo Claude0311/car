@@ -1,6 +1,7 @@
 import node
 import math
 import csv
+import numpy
 import pandas
 
 class Maze:
