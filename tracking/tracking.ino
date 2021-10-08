@@ -11,11 +11,11 @@ int IN4 = 7;//3
 SoftwareSerial BTSerial(Rx, Tx);
 char cmmd = 't';
 
-#define L2 A0
-#define L1 A1
-#define M A2
-#define R1 A3
-#define R2 A4
+#define L2 A1
+#define L1 A2
+#define M A3
+#define R1 A4
+#define R2 A5
 
 void setup() {
   // put your setup code here, to run once:
