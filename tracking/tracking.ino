@@ -8,6 +8,7 @@ int IN4 = 3;
 #define Rx 2
 #define Tx 9
 #include <SoftwareSerial.h>
+#include <math.h>
 SoftwareSerial BTSerial(Rx, Tx);
 char cmmd = 't';
 
@@ -31,30 +32,32 @@ void setup() {
   pinMode(R1 , INPUT);
   pinMode(R2 , INPUT);
   Serial.begin(9600);
+  while(!Serial);
+  Serial.println("Hello");
   BTSerial.begin(9600);
 }
 bool block = false;
 void loop() {
   // put your main code here, to run repeatedly:
-//  if (BTSerial.available()){
-//    cmmd = char(BTSerial.read());}
-//  if(cmmd == 'f'){MotorWriting(80,80);}
-//  else if(cmmd == 'b'){MotorWriting(-200,-200);}
-//  else if(cmmd == 'r'){MotorWriting(100,200);}  
-//  else if(cmmd == 'l'){MotorWriting(200,100);}
-//  else if(cmmd == 't'){
+  if (BTSerial.available()){
+    cmmd = char(BTSerial.read());}
+  if(cmmd == 'f'){MotorWriting(80,80);}
+  else if(cmmd == 'b'){MotorWriting(-200,-200);}
+  else if(cmmd == 'r'){MotorWriting(100,200);}  
+  else if(cmmd == 'l'){MotorWriting(200,100);}
+  else if(cmmd == 't'){
     Tracking();
-//    corner();}
+    corner();}
 }
 
-void MotorWriting(double vR, double vL){
+void MotorWriting(double vL, double vR){
   if(vL>=0){
      digitalWrite(IN1,HIGH);  
      digitalWrite(IN2,LOW);
   } else if(vL<0){
      digitalWrite(IN1,LOW);
      digitalWrite(IN2,HIGH);
-    vL=-vL;
+     vL=-vL;
   }
   if(vR>=0){
      digitalWrite(IN3,HIGH);
@@ -62,7 +65,7 @@ void MotorWriting(double vR, double vL){
   } else if(vR<0){
      digitalWrite(IN3,LOW);  
      digitalWrite(IN4,HIGH);
-    vR=-vR;
+     vR=-vR;
   }
   analogWrite(ENA,vL);
   analogWrite(ENB,vR);
@@ -83,24 +86,87 @@ void MotorCheck()
 int pre_time=millis();
 int cur_time=millis();
 double pre_error=0;
-int Kp=100; //比例增益係數
-int Kd=50; //微分增益係數
+int velocity = 125; //速度
+int Kp=75; //比例增益係數
+int Ki=50; //微分增益係數
 
 void Tracking(){
+  //Serial.begin(9600);
   int l2 = digitalRead(L2);
   int l1 = digitalRead(L1);
   int m = digitalRead(M);
   int r1 = digitalRead(R1);
   int r2 = digitalRead(R2);
-  if((l1 + l2 + m + r1 + r2) != 0){
-  double error = (1*l1+0.5*l2-0.75*(l1==l2&&l1==1)-0.25*(m==l2&&m==1))-(1*r1+0.5*r2-0.75*(r1==r2&&r1==1)-0.25*(m==r2&&m==1));//越左越大
-  double LastError = (error - pre_error);
-  pre_error = error;
-  double vR = min(255,125+Kp*error+Kd*LastError);
-  double vL = min(255,125-Kp*error-Kd*LastError);
-  MotorWriting(int(vR),int(vL));
+
+  double _velocity = 120;
+  double _Error = 0;
+  double _LastError = 0;
+  double _SumError = 0;
+  double _DeltaError = 0;
+  double error = 0;
+
+  double Kp = 10;
+  double Ki = 4;
+  double Kd = 0.5;
+  if((l1 + l2 + m + r1 + r2) != 0){  
+    double error_mapping_sum = 2*l2+l1+0*m-1*r1-2*r2;
+    double error_mapping_count = l2+l1+m+r1+r2;
+    //double error_mapping_count = l2+1.5*l1+2*m+1.5*r1+r2;
+    _Error = error_mapping_sum/error_mapping_count;
+    double _coeff = 1.4;
+    _Error = _Error>=0 ? pow(abs(_Error),_coeff) : -pow(abs(_Error),_coeff);
+    _DeltaError = _Error - _LastError;
+    _SumError = error + _LastError;
+
+    error = Kp*_Error + Ki*_SumError + Kd*_DeltaError;
+    //velocity = _velocity * (30.0-_Error) / 30.0;
+    velocity = _velocity;
+    
+    _LastError = _Error;
+    double vR = velocity + error;
+    double vL = velocity - error;
+    MotorWriting(int(vL),int(vR));
+    Serial.print(l2);
+    Serial.print(l1);
+    Serial.print(m);
+    Serial.print(r1);
+    Serial.print(r2);
+    Serial.print(" ");
+    Serial.print(_Error);
+    Serial.print(" ");
+    Serial.print(_DeltaError);
+    Serial.print(" ");
+    Serial.print(int(vL));
+    Serial.print(" ");
+    Serial.print(int(vR));
+    Serial.println();
+
+  }else{
+
+    _Error = 0;
+    _LastError = 0;
+    _SumError = 0;
+    _DeltaError = 0;
+    error = 0;
+    MotorWriting(-90,-90);
   }
-  else MotorWriting(-150,-150);
+
+  /*
+  if((l1 + l2 + m + r1 + r2) != 0){
+  //double error = (1*l1 + 0.5*l2 - 0.75*(l1==l2&&l1==1) - 0.25*(m==l2&&m==1)) - (1*r1 + 0.5*r2 - 0.75*(r1==r2&&r1==1) - 0.25*(m==r2&&m==1));
+  double error = 0.25*(l2-r2)+0.25*(l1-r1);//-0.25*(l2-m)+0.25*(r2-m);
+  double LastError = 0;
+  //double LastError = (error - pre_error);
+  pre_error = error;
+  double vR = velocity + Kp*error + Ki*LastError;
+  double vL = velocity - Kp*error - Ki*LastError;
+  MotorWriting(int(vR),int(vL));
+  //MotorWriting(0,0);
+  }
+  else {
+    MotorWriting(-0.8*velocity,-0.8*velocity);
+    //MotorWriting(0,0);
+  }*/
 }
 
 void corner(){
