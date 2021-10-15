@@ -1,5 +1,5 @@
-#define Rx 0
-#define Tx 1
+#define Rx 2
+#define Tx 9
 
 #include <SoftwareSerial.h>
 #include <stdlib.h>
@@ -25,11 +25,11 @@ void loop()
   Serial.print(ReceiveData);
  //if (BTSerial.available())
    // Serial.write(BTSerial.read());
-  if (Serial.available()){
+  while (Serial.available()){
     //Serial.read();
-    delay(10);
+    delay(1);
     BTSerial.write(Serial.read());
-    //BTSerial.write(byte('f'));
-    BTSerial.print(Serial.read());
-    }
+//    BTSerial.write(byte('f'));
+//    BTSerial.print(Serial.read());
+  }
 }

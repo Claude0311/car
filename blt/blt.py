@@ -58,14 +58,14 @@ def write():
 
 if __name__ == "__main__":
     # Please modify the port name.
-    bt = bluetooth("COM9")
+    bt = bluetooth("COM6")
     while not bt.is_open(): pass
     print("BT Connected!")
 
     readThread = threading.Thread(target=read)
     readThread.setDaemon(True)
     readThread.start()
-
+    # read()
     while True:
         msgWrite = input()
         if msgWrite == "exit": sys.exit()
