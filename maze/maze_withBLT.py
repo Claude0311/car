@@ -18,6 +18,15 @@ class Maze:
         self.nd_direction = dict()
         self.edge_types = dict()
 
+        self.turn_cost = 1.5
+        self.forward_cost = 1
+        self.explored = []
+        self.unexplored = []
+        self.justVisited = None
+
+        self.reward = {}
+  
+
         # process raw_data
         for dt in self.raw_data:
             nd = Node(int(dt[0]))
@@ -35,17 +44,64 @@ class Maze:
             if nd.isEnd():
                 self.End.append(nd.getIndex())
 
-        for nd in self.nd_dict:
+
+        for nd in self.nd_dict.values():
+        #for nd in self.nd_dict:
             nd_int = nd.getIndex()
+            self.unexplored.append(nd_int)
             self.edge_types[nd_int] = dict()
             for i in nd.getSuccessors():
-                i_int = i.getIndex()
+                #i_int = i.getIndex()
+                i_int = i
                 self.edge_types[nd_int][i_int] = self.edge_type(nd_int, i_int)
+    def setJustVisited(self, nd_int):
+        self.justVisited = nd_int
+
+
+    def setExplored(self,nd_int):
+        if nd_int in self.unexplored:
+            self.explored.append(nd_int)
+            self.unexplored.remove(nd_int)
+
+    def shortestPath(self, nd_from, nd_to):
+        """ 
+        return a path (sequence of nodes) from the current node to the nearest unexplored deadend 
+        e.g.
+            1 -- 2 -- 3     
+                 |    |  ->  shortestPath(1,4) returns [1,2,4]
+                 4 -- 5
+        """
+        # TODO
+        Q = [nd_from]
+        mark = [nd_from]
+        distance = {nd_from:0}
+        transition_list = {nd_from:None}
+        
+        while nd_to not in Q:#len(Q) != 0:
+            recent = Q.pop(0) #移除第0項並記錄
+            if recent not in mark:
+                mark.append(recent)
+            for item in self.nd_dict[recent].getSuccessors():
+                if (item not in Q) and (item not in mark):
+                    Q.append(item)
+                    distance[item] = distance[recent]+1
+                    transition_list[item] = recent
+        
+        R = []
+        c = nd_to
+        while c != nd_from:
+            R.append(transition_list[c])
+            c = transition_list[c]
+        #R.append(nd_from)
+        R.reverse()
+        R.append(nd_to)		
+        
+        return R
 
     def edge_type(self, n1, n2):
         turns = [0, 0, 0]
         for i in self.nd_dict[n2].getSuccessors():
-            turn = self.pathToString([n1, n2, i.getIndex()])
+            turn = self.pathToString([n1, n2, i])
             if turn == 'l':
                 turns[0] += 1
             elif turn == 'f':
@@ -72,6 +128,19 @@ class Maze:
                 cmmd ='b'
             direction += cmmd
         return direction
+
+    def setReward(self, nd_int, reward):
+        self.reward[nd_int] = reward
+
+
+
+    def getPathCost(self, path):
+        direction_str = self.pathToString(path)
+        cost = self.forward_cost + self.turn_cost * (direction_str.count("r") + direction_str.count("l")) + self.forward_cost * direction_str.count("f")
+        if len(path)>1:
+            if path[1] == self.justVisited:
+                cost += 1
+        return cost 
 
     # def locating(self, l):
     #     for ini in self.edge_types:
@@ -124,19 +193,43 @@ class Maze:
                 unexplored.add(m[1])
                 pre[m[1]] = m[0]
 
-    # def sqr_M_dist(self, path):
-    #     x, y = 0, 0
-    #     for i in range(len(path)-1):
-    #         if self.nd_direction[path[i]][path[i+1]] == 1:
-    #             y += self.dist(path[i], path[i+1])
-    #         elif self.nd_direction[path[i]][path[i+1]] == 3:
-    #             x -= self.dist(path[i], path[i+1])
-    #         elif self.nd_direction[path[i]][path[i+1]] == 2:
-    #             y -= self.dist(path[i], path[i+1])
-    #         if self.nd_direction[path[i]][path[i+1]] == 4:
-    #             x += self.dist(path[i], path[i+1])
-    #     d = abs(x) + abs(y)
-    #     return d ** 2
+    def M_dist_square(self, path):
+        x, y = 0, 0
+        for i in range(len(path)-1):
+            if self.nd_direction[path[i]][path[i+1]] == 1:
+                y += self.dist(path[i], path[i+1])
+            elif self.nd_direction[path[i]][path[i+1]] == 3:
+                x -= self.dist(path[i], path[i+1])
+            elif self.nd_direction[path[i]][path[i+1]] == 2:
+                y -= self.dist(path[i], path[i+1])
+            if self.nd_direction[path[i]][path[i+1]] == 4:
+                x += self.dist(path[i], path[i+1])
+        d = abs(x) + abs(y)
+        return d**2
+
+    def getPathReward(self, path):
+        # sum M_dist reward in path
+        # look for farest path
+        # not optimal
+        reward = 0
+        tmp_path = []
+        for nd_int in path:
+            tmp_path.append(nd_int)
+            #if nd_int in self.unexplored and nd_int in self.End:
+            if nd_int in self.unexplored:
+                reward += self.reward[nd_int]
+        return reward
+
+    def getEndNodeReward(self, path):
+        # find last node reward
+        # only end node had reward
+        reward = 0
+            #if nd_int in self.unexplored and nd_int in self.End:
+        if path[-1] in self.unexplored and path[-1] in self.End: # check in end
+                reward += self.reward[path[-1]]
+        return reward
+
+
 class Node:
     def __init__(self, index=0):
         self.index = int(index)
@@ -176,5 +269,5 @@ class Node:
             return self.index, index, 'wtf', self.Dist
 
     def isEnd(self):
-        return len(self.Successors) == 1 and self.index != 1
-        # return len(self.Successors) == 1
+        # return len(self.Successors) == 1 and self.index != 1
+        return len(self.Successors) == 1
