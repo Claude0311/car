@@ -2,6 +2,8 @@ import threading
 import time
 import sys
 import serial
+from maze.main import findPath
+from maze.maze_withBLT import Node
 
 class bluetooth:
     def __init__(self, port: str, baudrate: int=9600):
@@ -58,7 +60,7 @@ def write():
 
 if __name__ == "__main__":
     # Please modify the port name.
-    bt = bluetooth("COM6")
+    bt = bluetooth("/dev/tty.HC-38-SPPDev")
     while not bt.is_open(): pass
     print("BT Connected!")
 
@@ -67,6 +69,6 @@ if __name__ == "__main__":
     readThread.start()
     # read()
     while True:
-        msgWrite = input()
+        msgWrite = findPath()
         if msgWrite == "exit": sys.exit()
         bt.write(msgWrite)
