@@ -9,9 +9,10 @@ int IN4 = 3;
 #define Rx 2
 #define Tx 9
 #include <SoftwareSerial.h>
+#include <math.h>
 SoftwareSerial BTSerial(Rx, Tx);
 
-String cmmd="fffrbfrlrbfs";//"llrrbrllbflbs";//"lflbrfrb";//
+String cmmd="rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrs";//"fffrbfrlrbf""llrrbrllbflbs";//"lflbrfrb";//
 boolean haveCard=true;
 
 char cmmmd='a';
@@ -27,7 +28,6 @@ int step0 = 0;
 #define RST A0 // 讀卡機的重置腳位
 #define SS 10 // 晶片選擇腳位
 MFRC522 rfid(SS, RST); // 建立MFRC522物件
-double pre_error=0;
 void setup() {
   // put your setup code here, to run once:
   pinMode(ENB, OUTPUT);
@@ -52,31 +52,30 @@ String fake = "";
 void loop() {
   // put your main code here, to run repeatedly:
   //String ReceiveData="";
-  char val;
-  while(BTSerial.available())
-  {
-    delay(10);
-    val = BTSerial.read();
-    //ReceiveData += val;
-    fake += val;  
-  }
+//  char val;
+//  while(BTSerial.available())
+//  {
+//    delay(10);
+//    val = BTSerial.read();
+//    //ReceiveData += val;
+//    fake += val;  
+//  }
   //Serial.print(cmmd);
-//  cmmd = fake + "s";
+  //cmmd = fake + "s";
   //BTSerial.print(cmmd);
   //BTSerial.print('\n');
-  if(cmmd!="s"){
-      //cmmmd=ReceiveData[0];
-      cmmmd = cmmd[0];
-  }
-  if (cmmmd!='0'){
-    if(block){
-      Corner();
-    }
-    else{
+//  if(cmmd!="s"){
+//      //cmmmd=ReceiveData[0];
+//      cmmmd = cmmd[0];
+//  }
+//  if (cmmmd!='0'){
+//    if(block){
+//      Corner();
+//    }
+//    else{
       Tracking();
-    }
- }
-  
+//    }
+// }
 }
 
 void MotorWriting(double vR, double vL){
@@ -96,50 +95,86 @@ void MotorWriting(double vR, double vL){
      digitalWrite(IN4,HIGH);
     vR=-vR;
   }
-  analogWrite(ENA,vL*0.6);
-  analogWrite(ENB,vR*0.6);
+  analogWrite(ENA,vL);
+  analogWrite(ENB,vR);
 }
 
 int pre_time=millis();
 int cur_time=millis();
-
-int Kp=160; //比例增益係數132
-int Kd=61; //微分增益係數44
+double pre_error=0;
+int velocity = 125; //速度
+int Kp=75; //比例增益係數
+int Ki=50; //微分增益係數
 void Tracking(){
   int l2 = digitalRead(L2);
   int l1 = digitalRead(L1);
   int m = digitalRead(M);
   int r1 = digitalRead(R1);
   int r2 = digitalRead(R2);
+  BTSerial.print(l2);
+  BTSerial.print(l1);
+  BTSerial.print(m);
+  BTSerial.print(r1);
+  BTSerial.print(r2);
+  BTSerial.print("\n");
   if(l2*l1*m*r1*r2==1){
     if(cmmd[step0]=='s') MotorWriting(0,0);
     else block=true;
-   pre_error=0;
-  }
-  else if((l1 + l2 + m + r1 + r2) != 0){
-  double error = (1*l1+0.5*l2-0.75*(l1==l2&&l1==1)-0.25*(m==l2&&m==1))-(1*r1+0.5*r2-0.75*(r1==r2&&r1==1)-0.25*(m==r2&&m==1));//越左越大
-  double LastError = (error - pre_error);
-  pre_error = error;
-  double vR = min(255,255+Kp*error+Kd*LastError);
-  double vL = min(255,255-Kp*error-Kd*LastError);//220
-  MotorWriting(int(vR),int(vL));
-  }
-  else{
-    //MotorWriting(-255,-255);
     pre_error=0;
-    int allWhite=1;
-    while((l1 + l2 + m + r1 + r2)==0){
-      allWhite += 1;
+    return;
+  }
+  double _velocity = 120;
+  double _Error = 0;
+  double _LastError = 0;
+  double _SumError = 0;
+  double _DeltaError = 0;
+  double error = 0;
 
-      if(allWhite%2==1) MotorWriting(-210,210);//-250右轉
-      else MotorWriting(255,-255);//左轉
-      delay(allWhite*100);
-      l2 = digitalRead(L2);
-      l1 = digitalRead(L1);
-      m = digitalRead(M);
-      r1 = digitalRead(R1);
-      r2 = digitalRead(R2);
-    }
+  double Kp = 10;
+  double Ki = 4;
+  double Kd = 0.5;
+  Serial.println((l1 + l2 + m + r1 + r2) != 0);
+  if((l1 + l2 + m + r1 + r2) != 0){  
+    double error_mapping_sum = 2*l2+l1+0*m-1*r1-2*r2;
+    double error_mapping_count = l2+l1+m+r1+r2;
+    //double error_mapping_count = l2+1.5*l1+2*m+1.5*r1+r2;
+    _Error = error_mapping_sum/error_mapping_count;
+    double _coeff = 1.4;
+    _Error = _Error>=0 ? pow(abs(_Error),_coeff) : -pow(abs(_Error),_coeff);
+    _DeltaError = _Error - _LastError;
+    _SumError = error + _LastError;
+
+    error = Kp*_Error + Ki*_SumError + Kd*_DeltaError;
+    //velocity = _velocity * (30.0-_Error) / 30.0;
+    velocity = _velocity;
+    
+    _LastError = _Error;
+    double vR = velocity + error;
+    double vL = velocity - error;
+    MotorWriting(int(vL),int(vR));
+//    Serial.print(l2);
+//    Serial.print(l1);
+//    Serial.print(m);
+//    Serial.print(r1);
+//    Serial.print(r2);
+//    Serial.print(",");
+//    Serial.print(_Error);
+//    Serial.print(",");
+//    Serial.print(_DeltaError);
+//    Serial.print(",");
+//    Serial.print(int(vL));
+//    Serial.print(",");
+//    Serial.print(int(vR));
+//    Serial.println(".");
+
+  }else{
+
+    _Error = 0;
+    _LastError = 0;
+    _SumError = 0;
+    _DeltaError = 0;
+    error = 0;
+    MotorWriting(-90,-90);
   }
 }
 
@@ -147,6 +182,7 @@ int width_car=10;
 int omega=2500;
 char message[9];
 void Corner(){
+  pre_error=0;
   if(cmmd[step0]=='r'){
     delay(100);
     MotorWriting(250*(7-width_car/2)/(7+width_car/2),250);

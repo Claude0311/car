@@ -1,10 +1,10 @@
 import random
 from node import *
-import maze as mz
+import maze_withBLT as mz
 
 random.seed(6666)
 tests = 50
-maze_path = "./maze2.csv"
+maze_path = "./maze1.csv"
 total_nodes = 38
 
 def main():
