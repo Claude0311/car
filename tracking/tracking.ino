@@ -18,7 +18,9 @@ enum Sensor{
 
 SoftwareSerial BTSerial(Rx, Tx);
 char cmmd = 't';
-String cmds="rbs";
+String cmds="flrffrrbllrrbfrbllrllrrbfbrflfbrbrfffrrrbllfbrrflrbllrrbs";
+//String cmds="ffflrlrbfs";
+//String cmds="rrs";
 bool haveCard=true;
 
 #define L2 A1
@@ -65,7 +67,7 @@ int omega=2000; // time
 
 // wheel velocity
 int _leftV = 100;
-int _rightV = 97;
+int _rightV = 99;
 
 
 void loop() {
@@ -131,10 +133,10 @@ bool oneBlack(int s1,int s2,int s3,int s4,int s5){ // at least 1 black 00001 -> 
   return (s1|s2|s3|s4|s5);
 }
 bool oneWhite(int s1,int s2,int s3,int s4,int s5){ // at least 1 white 01111 -> 1 11111 -> 0
-  return !(s1&s2&s3&s4&s5);
+  return (s1+s2+s3+s4+s5)==1;
 }
-bool allWhite(int s1,int s2,int s3,int s4,int s5){ // 5 white 11111 -> 1 01111 -> 0
-  return (s1&s2&s3&s4&s5);
+bool allWhite(int s1,int s2,int s3,int s4,int s5){ // 5 white 00000 -> 1 00001 -> 0
+  return (s1+s2+s3+s4+s5)==0;
 }
 
 void AlignBlock(){ // let car stop in the edge of block
@@ -317,6 +319,7 @@ r2 = digitalRead(R2);
             BTSerial.print('\n');
           }
           rfid.PICC_HaltA(); // 讓卡片進入停止模式
+          haveCard = false;
           /*
           step0+=1;
           MotorWriting(150,-150);
@@ -337,6 +340,8 @@ r2 = digitalRead(R2);
           */
         }
       }
+  }else{
+    haveCard = true;  
   }
 
 if(allButOneBlack(l2,l1,m,r1,r2)){ // 11111=========== detect block
@@ -363,11 +368,31 @@ if(is_corner){// now the sensor should aligned to block edge
   pre_error=0;
   if(cmds[step0]=='r'){ // ================= right =================
     MotorWriting(0.94*_leftV,0);
-    delay(0.36*omega);// 1.2s
-    MotorWriting(0,-_rightV);
-    delay(0.18*omega);// 1.2s
+    delay(0.34*omega);// 1.2s
+//    MotorWriting(0,-_rightV);
+//    delay(0.175*omega);// 1.2s
+//    
+//    do{//all is 0
+//  
+//      MotorWriting(0.94*_leftV,0);
+//      delay(10);
+//      l2 = digitalRead(L2);
+//      l1 = digitalRead(L1);
+//      m = digitalRead(M);
+//      r1 = digitalRead(R1);
+//      r2 = digitalRead(R2);
+//    }while(!oneBlack(l2,l1,m,r1,r2));
+
+    
+    int i = 0;
     do{//all is 0
-      MotorWriting(0.94*_leftV,0);
+      if(i<0.18*omega){
+        MotorWriting(0,-_rightV); 
+      }else{
+        MotorWriting(0.94*_leftV,0);
+      }
+      
+      i+=10;
       delay(10);
       l2 = digitalRead(L2);
       l1 = digitalRead(L1);
@@ -375,16 +400,15 @@ if(is_corner){// now the sensor should aligned to block edge
       r1 = digitalRead(R1);
       r2 = digitalRead(R2);
     }while(!oneBlack(l2,l1,m,r1,r2));
-
-    BTSerial.print("corner");  //以16進位顯示UID值
-    BTSerial.print('\n');
+//    BTSerial.print("corner");  //以16進位顯示UID值
+//    BTSerial.print('\n');
   }
   else if(cmds[step0]=='l'){ // ================= left =================
 //      delay(100);
     MotorWriting(0,1.1*_rightV);
-    delay(0.36*omega);
+    delay(0.34*omega);
     MotorWriting(-1.2*_leftV,-0);
-    delay(0.18*omega);// 1.2s
+    delay(0.175*omega);// 1.2s
     do{//all is 0
       MotorWriting(0,1.1*_rightV);
       delay(10);
@@ -395,10 +419,11 @@ if(is_corner){// now the sensor should aligned to block edge
       r2 = digitalRead(R2);
     }while(!oneBlack(l2,l1,m,r1,r2));
 
-    BTSerial.print("corner");  //以16進位顯示UID值
-    BTSerial.print('\n');
+//    BTSerial.print("corner");  //以16進位顯示UID值
+//    BTSerial.print('\n');
   }
   else if(cmds[step0]=='f'){ // ================= forward =================
+    
     while(allButOneBlack(l2,l1,m,r1,r2)){//還在block裡
       MotorWriting(_leftV,_rightV);
       delay(10);
@@ -407,20 +432,38 @@ if(is_corner){// now the sensor should aligned to block edge
       m = digitalRead(M);
       r1 = digitalRead(R1);
       r2 = digitalRead(R2);
-    } 
+    }
+    /*
+    int i = 1;
+    int num = 50;
+    while(allWhite(l2,l1,m,r1,r2)){
+      MotorWriting(i*110,-1*i*110);
+      delay(num);
+      MotorWriting(0,0);
+      delay(50);
+      num+=50;
+      i*=-1;
+      l2 = digitalRead(L2);
+      l1 = digitalRead(L1);
+      m = digitalRead(M);
+      r1 = digitalRead(R1);
+      r2 = digitalRead(R2);     
+    }
+    */
 
-    BTSerial.print("forward");  //以16進位顯示UID值
-    BTSerial.print('\n');
+//    BTSerial.print("forward");  //以16進位顯示UID值
+//    BTSerial.print('\n');
   }
   else if(cmds[step0]=='b'){ // ================= backward =================
-      MotorWriting(-150,150);
-      delay(500);
+      MotorWriting(125,125);
+      delay(250);
     // 目前狀態：sensor在末端block邊緣內側
     while(oneBlack(l1,m,r1,WHITE,WHITE)){
-      MotorWriting(0,150);
-      delay(200);
-      MotorWriting(-200,0);
-      delay(200);
+      
+      MotorWriting(0,0);
+      delay(40);
+      MotorWriting(-120,100);
+      delay(40);
       l2 = digitalRead(L2);
       l1 = digitalRead(L1);
       m = digitalRead(M);

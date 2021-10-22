@@ -6,7 +6,7 @@ import time
 random.seed(6666)
 tests = 50
 #maze_path = "./medium_maze.csv"
-maze_path = "maze/medium_maze.csv"
+maze_path = "maze/final_map_109.csv"
 total_nodes = 38
 
 _sim = True
