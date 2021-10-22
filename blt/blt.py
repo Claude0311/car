@@ -4,7 +4,7 @@ import sys
 import serial
 from maze.main import findPath
 from maze.maze_withBLT import Node
-
+from blt.score import Scoreboard
 class bluetooth:
     def __init__(self, port: str, baudrate: int=9600):
         """ Initialize an BT object, and auto-connect it. """
@@ -47,9 +47,19 @@ class bluetooth:
         return receiveMsg
 
 def read():
+    # scoreboard = Scoreboard('filepath','team',1)
+    id = ''
     while True:
+        time.sleep(0.01)
         if bt.waiting():
-            print(bt.readString())
+            temp = bt.readString()
+            print('temp',temp)
+            id += temp if len(temp) == 2 else ('0' + temp)
+            if len(id) == 8:
+                print('complete id',id)
+                # scoreboard.add_UID(id)
+                # scoreboard.getCurrentScore()
+                id = ''
 
 def reconnect():
     print('reconnecting, please ignore the error')
@@ -100,10 +110,6 @@ if __name__ == "__main__":
 
     # msgWrite = findPath()
     # print(msgWrite)
-    # if msgWrite == "exit": sys.exit()
     # bt.write(msgWrite)
     while True:
         pass
-        # msgWrite = findPath()
-        # if msgWrite == "exit": sys.exit()
-        # bt.write(msgWrite)
