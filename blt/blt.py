@@ -11,6 +11,7 @@ class bluetooth:
         # The port name is the name shown in control panel
         # And the baudrate is the communication setting, default value of HC-05 is 9600.
         self.ser = serial.Serial(port, baudrate=baudrate)
+        self.port = port
         
     def is_open(self) -> bool:
         return self.ser.is_open
@@ -50,25 +51,59 @@ def read():
         if bt.waiting():
             print(bt.readString())
 
+def reconnect():
+    print('reconnecting, please ignore the error')
+    ok = bt.do_connect(bt.port)
+    if ok:
+        print('connected, opening')
+        while not bt.is_open(): pass
+        print('opened')
+        return True
+    else:
+        print('fail to connect')
+        return False
+
 def write():
     while True:
-        msgWrite = input()
+        msgWrite = input("type to control your car, or type E/R to exit/reconnect: ")
         
-        if msgWrite == "exit": sys.exit()
-    
-        bt.write(msgWrite + "\n")
+        if msgWrite == "E": sys.exit()
+        if msgWrite == "R": 
+            reconnect()
+            continue
+        try:
+            bt.write(msgWrite + "\n")
+        except:
+            print('fail to write')
 
 if __name__ == "__main__":
     # Please modify the port name.
-    bt = bluetooth("/dev/tty.HC-38-SPPDev")
+    firstTry = True
+    while firstTry:
+        try:
+            bt = bluetooth("COM6")
+            firstTry = False
+        except:
+            time.sleep(1)
+            print('reconnecting')
     while not bt.is_open(): pass
     print("BT Connected!")
+
 
     readThread = threading.Thread(target=read)
     readThread.setDaemon(True)
     readThread.start()
-    # read()
+
+    writeThread = threading.Thread(target=write)
+    writeThread.setDaemon(True)
+    writeThread.start()
+
+    # msgWrite = findPath()
+    # print(msgWrite)
+    # if msgWrite == "exit": sys.exit()
+    # bt.write(msgWrite)
     while True:
-        msgWrite = findPath()
-        if msgWrite == "exit": sys.exit()
-        bt.write(msgWrite)
+        pass
+        # msgWrite = findPath()
+        # if msgWrite == "exit": sys.exit()
+        # bt.write(msgWrite)
