@@ -1,0 +1,5 @@
+{
+    "board": "arduino:avr:uno",
+    "sketch": "tracking/tracking.ino",
+    "port": "/dev/cu.usbserial-1410"
+}
